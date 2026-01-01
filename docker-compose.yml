@@ -1,0 +1,23 @@
+# Docker Compose for local development
+version: '3.8'
+
+services:
+  vera-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AzureAd__TenantId=${AZURE_AD_TENANT_ID}
+      - AzureAd__ClientId=${AZURE_AD_CLIENT_ID}
+      - CosmosDb__Endpoint=${COSMOS_DB_ENDPOINT}
+      - CosmosDb__Key=${COSMOS_DB_KEY}
+      - AzureOpenAI__Endpoint=${AZURE_OPENAI_ENDPOINT}
+      - AzureOpenAI__ApiKey=${AZURE_OPENAI_API_KEY}
+      - Encryption__Key=${ENCRYPTION_KEY}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped

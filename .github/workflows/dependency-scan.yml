@@ -1,0 +1,102 @@
+name: Dependency Security Scan
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.csproj'
+      - '**/packages.lock.json'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  dependency-scan:
+    name: Scan Dependencies for Vulnerabilities
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: List dependencies
+        run: dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
+        continue-on-error: true
+      
+      - name: Check for vulnerabilities
+        id: vuln-check
+        run: |
+          if grep -q "has the following vulnerable packages" vulnerable-packages.txt; then
+            echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+            echo "::error::Vulnerable packages detected!"
+            exit 1
+          else
+            echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+            echo "No vulnerable packages found"
+          fi
+        continue-on-error: true
+      
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-report
+          path: vulnerable-packages.txt
+          retention-days: 30
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && steps.vuln-check.outputs.vulnerabilities_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const vulnerabilities = fs.readFileSync('vulnerable-packages.txt', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## ⚠️ Security Vulnerabilities Detected\n\n```\n' + vulnerabilities + '\n```\n\nPlease update the vulnerable packages before merging.'
+            });
+      
+      - name: Fail if vulnerabilities found
+        if: steps.vuln-check.outputs.vulnerabilities_found == 'true'
+        run: exit 1
+
+  docker-scan:
+    name: Scan Docker Image for Vulnerabilities
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'Dockerfile')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: docker build -t vera-api:test .
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'vera-api:test'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

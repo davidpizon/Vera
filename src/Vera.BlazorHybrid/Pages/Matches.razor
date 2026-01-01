@@ -1,0 +1,52 @@
+@page "/matches"
+
+<PageTitle>Matches - Vera</PageTitle>
+
+<div class="matches-container">
+    <h2>Your Matches</h2>
+    
+    <div class="matches-grid">
+        @if (matches.Any())
+        {
+            @foreach (var match in matches)
+            {
+                <div class="match-card">
+                    <img src="@match.ProfileImage" alt="@match.Name" />
+                    <div class="match-info">
+                        <h3>@match.Name, @match.Age</h3>
+                        <p>@match.Bio</p>
+                        <div class="compatibility">
+                            <span>Compatibility: @((int)(match.Score * 100))%</span>
+                        </div>
+                        <div class="match-actions">
+                            <button class="btn btn-outline-secondary">Pass</button>
+                            <button class="btn btn-primary">Like</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="no-matches">No matches yet. Complete your profile to start matching!</p>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Match> matches = new();
+    
+    private class Match
+    {
+        public string Name { get; set; } = "";
+        public int Age { get; set; }
+        public string Bio { get; set; } = "";
+        public string ProfileImage { get; set; } = "";
+        public double Score { get; set; }
+    }
+    
+    protected override void OnInitialized()
+    {
+        // TODO: Load matches from API
+    }
+}
