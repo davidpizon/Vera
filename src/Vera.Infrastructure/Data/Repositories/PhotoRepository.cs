@@ -15,15 +15,19 @@ public class PhotoRepository : IPhotoRepository
 
     public async Task<Photo?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        try
+        // Since Photos are partitioned by userId, we need to query across partitions
+        var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
+            .WithParameter("@id", id);
+
+        var iterator = _context.Photos.GetItemQueryIterator<Photo>(query);
+        
+        if (iterator.HasMoreResults)
         {
-            var response = await _context.Photos.ReadItemAsync<Photo>(id, new PartitionKey(id), cancellationToken: cancellationToken);
-            return response.Resource;
+            var results = await iterator.ReadNextAsync(cancellationToken);
+            return results.FirstOrDefault();
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
+        
+        return null;
     }
 
     public async Task<IEnumerable<Photo>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
@@ -57,6 +61,11 @@ public class PhotoRepository : IPhotoRepository
 
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        await _context.Photos.DeleteItemAsync<Photo>(id, new PartitionKey(id), cancellationToken: cancellationToken);
+        // First get the photo to retrieve its UserId (partition key)
+        var photo = await GetByIdAsync(id, cancellationToken);
+        if (photo != null)
+        {
+            await _context.Photos.DeleteItemAsync<Photo>(id, new PartitionKey(photo.UserId), cancellationToken: cancellationToken);
+        }
     }
 }

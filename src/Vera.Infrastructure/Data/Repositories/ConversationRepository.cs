@@ -15,15 +15,19 @@ public class ConversationRepository : IConversationRepository
 
     public async Task<Conversation?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        try
+        // Since Conversations are partitioned by userId, we need to query across partitions
+        var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
+            .WithParameter("@id", id);
+
+        var iterator = _context.Conversations.GetItemQueryIterator<Conversation>(query);
+        
+        if (iterator.HasMoreResults)
         {
-            var response = await _context.Conversations.ReadItemAsync<Conversation>(id, new PartitionKey(id), cancellationToken: cancellationToken);
-            return response.Resource;
+            var results = await iterator.ReadNextAsync(cancellationToken);
+            return results.FirstOrDefault();
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
+        
+        return null;
     }
 
     public async Task<IEnumerable<Conversation>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
@@ -57,6 +61,11 @@ public class ConversationRepository : IConversationRepository
 
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        await _context.Conversations.DeleteItemAsync<Conversation>(id, new PartitionKey(id), cancellationToken: cancellationToken);
+        // First get the conversation to retrieve its UserId (partition key)
+        var conversation = await GetByIdAsync(id, cancellationToken);
+        if (conversation != null)
+        {
+            await _context.Conversations.DeleteItemAsync<Conversation>(id, new PartitionKey(conversation.UserId), cancellationToken: cancellationToken);
+        }
     }
 }
