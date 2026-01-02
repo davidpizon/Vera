@@ -40,8 +40,10 @@ The default values in `.env.example` are pre-configured for the local Cosmos DB 
 Use Docker Compose to start the Azure Cosmos DB Emulator:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+**Note**: Depending on your Docker installation, you may need to use `docker-compose` (with hyphen) instead of `docker compose` (with space). Both commands work with different versions of Docker Compose.
 
 This command will:
 - Download the Azure Cosmos DB Emulator Docker image (if not already present)
@@ -51,13 +53,13 @@ This command will:
 To check if the emulator is running:
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 To view logs:
 
 ```bash
-docker-compose logs -f cosmosdb
+docker compose logs -f cosmosdb
 ```
 
 ### 4. Access the Cosmos DB Emulator
@@ -150,7 +152,7 @@ To customize the Cosmos DB configuration:
 ### Start the Cosmos DB Emulator
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Run Your Application
@@ -170,13 +172,13 @@ dotnet run --project ./src/Vera.Api/Vera.Api.csproj
 When you're done developing:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 To stop and remove all data:
 
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Troubleshooting
@@ -189,19 +191,19 @@ docker-compose down -v
 
 **Solutions**:
 - Ensure Docker has enough resources allocated (at least 4GB RAM)
-- Check Docker logs: `docker-compose logs cosmosdb`
+- Check Docker logs: `docker compose logs cosmosdb`
 - Verify no other service is using ports 8081, 10251-10254
-- Try pulling the latest image: `docker-compose pull`
+- Try pulling the latest image: `docker compose pull`
 
 #### 2. Cannot Connect to Emulator
 
 **Problem**: Application cannot connect to `https://localhost:8081`
 
 **Solutions**:
-- Verify the emulator is running: `docker-compose ps`
+- Verify the emulator is running: `docker compose ps`
 - Check if ports are accessible: `curl -k https://localhost:8081`
 - Ensure `EnableSSLValidation` is set to `false` in configuration
-- Try restarting the container: `docker-compose restart cosmosdb`
+- Try restarting the container: `docker compose restart cosmosdb`
 
 #### 3. SSL Certificate Errors
 
@@ -219,7 +221,7 @@ docker-compose down -v
 **Solutions**:
 - Ensure `AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true` in `docker-compose.yml`
 - Verify the volume is created: `docker volume ls`
-- Check volume mount is correct: `docker-compose config`
+- Check volume mount is correct: `docker compose config`
 
 #### 5. Performance Issues
 
@@ -228,7 +230,7 @@ docker-compose down -v
 **Solutions**:
 - Increase Docker memory allocation (recommended: 4GB minimum)
 - Reduce partition count in `docker-compose.yml` (if you don't need 10 partitions)
-- Restart the emulator: `docker-compose restart cosmosdb`
+- Restart the emulator: `docker compose restart cosmosdb`
 
 #### 6. Port Already in Use
 
@@ -254,8 +256,8 @@ The Azure Cosmos DB Emulator has some limitations compared to the cloud service:
 
 If you encounter issues not covered here:
 
-1. Check the [Azure Cosmos DB Emulator documentation](https://docs.microsoft.com/azure/cosmos-db/local-emulator)
-2. Review the [Docker Compose logs](https://docs.docker.com/compose/reference/logs/)
+1. Check the [Azure Cosmos DB Emulator documentation](https://learn.microsoft.com/azure/cosmos-db/local-emulator)
+2. Review the [Docker Compose documentation](https://docs.docker.com/compose/)
 3. Search for similar issues in the project's [GitHub Issues](https://github.com/davidpizon/Vera/issues)
 4. Open a new issue with detailed information about your problem
 
@@ -263,7 +265,7 @@ If you encounter issues not covered here:
 
 ## Additional Resources
 
-- [Azure Cosmos DB Documentation](https://docs.microsoft.com/azure/cosmos-db/)
-- [Azure Cosmos DB Emulator](https://docs.microsoft.com/azure/cosmos-db/local-emulator)
+- [Azure Cosmos DB Documentation](https://learn.microsoft.com/azure/cosmos-db/)
+- [Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator)
 - [Docker Documentation](https://docs.docker.com/)
-- [.NET SDK for Azure Cosmos DB](https://docs.microsoft.com/azure/cosmos-db/sql/sql-api-sdk-dotnet-standard)
+- [.NET SDK for Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-dotnet-v3)
