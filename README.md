@@ -1,6 +1,6 @@
 # Vera - AI-Powered Dating Application
 
-Vera is a modern, cross-platform dating application built with .NET 10, featuring AI-powered conversational profile creation, intelligent matching algorithms, and secure cloud infrastructure.
+Vera is a modern, cross-platform dating application built with .NET 10, featuring AI-powered conversational profile creation, intelligent matching algorithms, secure cloud infrastructure, and **.NET Aspire orchestration** for cloud-native development.
 
 ## 🌟 Features
 
@@ -12,6 +12,7 @@ Vera is a modern, cross-platform dating application built with .NET 10, featurin
 - **Cloud-Native Architecture**: Azure Cosmos DB for global scale and performance
 - **Data Encryption**: End-to-end encryption for sensitive user data
 - **Docker Support**: Containerized backend for easy deployment
+- **.NET Aspire Orchestration**: Service discovery, observability, and resilience
 
 ## 🏗️ Architecture
 
@@ -24,7 +25,9 @@ Vera/
 │   ├── Vera.Application/     # Business logic and use cases
 │   ├── Vera.Infrastructure/  # External services (Cosmos DB, Azure OpenAI)
 │   ├── Vera.API/            # REST API backend (.NET 10)
-│   └── Vera.BlazorHybrid/   # Mobile app (iOS & Android)
+│   ├── Vera.BlazorHybrid/   # Mobile app (iOS & Android)
+│   ├── Vera.AppHost/        # .NET Aspire orchestration
+│   └── Vera.ServiceDefaults/# Shared Aspire configuration
 ├── .github/
 │   ├── workflows/           # CI/CD pipelines
 │   └── dependabot.yml      # Dependency scanning
@@ -37,9 +40,44 @@ Vera/
 ### Prerequisites
 
 - .NET 10 SDK
+- .NET Aspire workload: `dotnet workload install aspire`
 - Azure Subscription (for Cosmos DB, OpenAI, and Entra ID)
-- Visual Studio 2022 or VS Code
-- Docker Desktop (optional, for containerization)
+- Visual Studio 2025 or VS Code
+- Docker Desktop (for containerization and Cosmos DB emulator)
+
+### Quick Start with .NET Aspire (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/davidpizon/Vera.git
+cd Vera
+```
+
+2. Start the Aspire AppHost:
+```bash
+cd src/Vera.AppHost
+dotnet run
+```
+
+3. Access the Aspire Dashboard (URL shown in console, typically http://localhost:15888)
+   - View all services, logs, traces, and metrics
+   - Monitor health and performance
+
+4. The API will be available at:
+   - HTTPS: https://localhost:5001
+   - HTTP: http://localhost:5000
+
+For detailed Aspire setup instructions, see [ASPIRE_SETUP.md](ASPIRE_SETUP.md)
+
+### Alternative: Traditional Local Development
+
+#### Using Docker Compose
+
+```bash
+docker compose up -d
+```
+
+This starts the Cosmos DB emulator. See the [Cosmos DB Configuration](#cosmos-db-configuration) section below.
 
 ### Azure Services Setup
 
@@ -138,14 +176,19 @@ docker run -p 8080:8080 vera-api
 
 ## 📱 Mobile App Configuration
 
-Update the API endpoint in `src/Vera.BlazorHybrid/MauiProgram.cs`:
+The mobile app connects to the API backend orchestrated by Aspire.
 
-```csharp
-builder.Services.AddHttpClient("VeraAPI", client =>
+Update the API endpoint in `src/Vera.BlazorHybrid/appsettings.json`:
+
+```json
 {
-    client.BaseAddress = new Uri("https://your-api-url.azurewebsites.net/");
-});
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:5001"
+  }
+}
 ```
+
+For platform-specific configuration (Android emulator, iOS simulator, physical devices), see [src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md](src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md)
 
 Update authentication settings in `src/Vera.BlazorHybrid/Services/AuthenticationService.cs`:
 
@@ -155,6 +198,18 @@ _msalClient = PublicClientApplicationBuilder
     .WithAuthority("https://login.microsoftonline.com/YOUR_TENANT_ID")
     .Build();
 ```
+
+## 🔍 Observability with .NET Aspire
+
+The Aspire dashboard provides comprehensive observability:
+
+- **Real-time Logs**: Centralized logging from all services
+- **Distributed Tracing**: End-to-end request tracing with OpenTelemetry
+- **Metrics**: Performance metrics and charts
+- **Resource Monitoring**: Health checks and service status
+- **Service Discovery**: Automatic endpoint resolution
+
+Access the dashboard when running the AppHost - the URL will be displayed in the console.
 
 ## 🔒 Security Features
 
@@ -181,6 +236,39 @@ The project includes GitHub Actions workflows for:
 - **Dependency Scanning**: Weekly NuGet, Docker, and GitHub Actions scans + PR validation
 - **Security Scanning**: Automated vulnerability detection on every PR
 
+## ☁️ Deployment
+
+### Deploy to Azure with Aspire
+
+Using Azure Developer CLI (`azd`):
+
+```bash
+cd src/Vera.AppHost
+azd init
+azd up
+```
+
+This automatically:
+- Creates Azure resources (Container Apps, Cosmos DB, etc.)
+- Builds and pushes container images
+- Deploys the application
+- Configures observability
+
+For detailed deployment instructions, see [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md)
+
+### Traditional Docker Deployment
+
+```bash
+docker-compose up --build
+```
+
+Or build the image manually:
+
+```bash
+docker build -t vera-api .
+docker run -p 8080:8080 vera-api
+```
+
 ## 🛠️ Technology Stack
 
 ### Backend
@@ -189,6 +277,7 @@ The project includes GitHub Actions workflows for:
 - Azure Cosmos DB
 - Azure OpenAI (GPT-4)
 - Microsoft Identity Web
+- **.NET Aspire** - Cloud-native orchestration
 
 ### Mobile
 - .NET MAUI
@@ -202,6 +291,7 @@ The project includes GitHub Actions workflows for:
 - Azure OpenAI
 - Microsoft Entra External ID
 - Docker
+- **.NET Aspire** - Service orchestration and observability
 
 ## 📝 API Endpoints
 
@@ -501,9 +591,8 @@ If you encounter issues not covered here:
 
 ---
 
-## Additional Resources
+## 📚 Additional Documentation
 
-- [Azure Cosmos DB Documentation](https://learn.microsoft.com/azure/cosmos-db/)
-- [Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator)
-- [Docker Documentation](https://docs.docker.com/)
-- [.NET SDK for Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-dotnet-v3)
+- [ASPIRE_SETUP.md](ASPIRE_SETUP.md) - Complete .NET Aspire setup guide
+- [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md) - Azure deployment with Aspire
+- [src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md](src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md) - Mobile app integration guide

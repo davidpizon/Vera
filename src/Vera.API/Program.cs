@@ -7,77 +7,91 @@ using Vera.Infrastructure.Data.Repositories;
 using Vera.Infrastructure.Security;
 using Vera.Infrastructure.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace Vera.API;
 
-// Add Microsoft Entra External ID authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
-    .EnableTokenAcquisitionToCallDownstreamApi()
-    .AddInMemoryTokenCaches();
-
-builder.Services.AddAuthorization();
-
-// Add CORS for Blazor Hybrid app
-builder.Services.AddCors(options =>
+public class Program
 {
-    options.AddPolicy("AllowBlazorHybrid", policy =>
+    public static async Task Main(string[] args)
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+        var builder = WebApplication.CreateBuilder(args);
 
-// Add controllers
-builder.Services.AddControllers();
+        // Add Aspire service defaults (OpenTelemetry, Health Checks, Service Discovery)
+        builder.AddServiceDefaults();
 
-// Add OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+        // Add Microsoft Entra External ID authentication
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddInMemoryTokenCaches();
 
-// Register Cosmos DB Context
-builder.Services.AddSingleton<CosmosDbContext>();
+        builder.Services.AddAuthorization();
 
-// Register Repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
-builder.Services.AddScoped<IMatchRepository, MatchRepository>();
-builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+        // Add CORS for Blazor Hybrid app
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowBlazorHybrid", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
 
-// Register Services
-builder.Services.AddScoped<IAIConversationService, AzureOpenAIConversationService>();
-builder.Services.AddScoped<IMatchingService, MatchingService>();
-builder.Services.AddSingleton<IEncryptionService>(sp => 
-    new AesEncryptionService(builder.Configuration["Encryption:Key"] ?? "default-key-change-in-production"));
+        // Add controllers
+        builder.Services.AddControllers();
 
-// Register Application Services
-builder.Services.AddScoped<ConversationService>();
-builder.Services.AddScoped<PhotoService>();
-builder.Services.AddScoped<MatchingApplicationService>();
+        // Add OpenAPI/Swagger
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+        // Register Cosmos DB Context
+        builder.Services.AddSingleton<CosmosDbContext>();
 
-// Initialize Cosmos DB
-using (var scope = app.Services.CreateScope())
-{
-    var cosmosDbContext = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
-    await cosmosDbContext.InitializeDatabaseAsync();
+        // Register Repositories
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+        builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+        builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+
+        // Register Services
+        builder.Services.AddScoped<IAIConversationService, AzureOpenAIConversationService>();
+        builder.Services.AddScoped<IMatchingService, MatchingService>();
+        builder.Services.AddSingleton<IEncryptionService>(sp => 
+            new AesEncryptionService(builder.Configuration["Encryption:Key"] ?? "default-key-change-in-production"));
+
+        // Register Application Services
+        builder.Services.AddScoped<ConversationService>();
+        builder.Services.AddScoped<PhotoService>();
+        builder.Services.AddScoped<MatchingApplicationService>();
+
+        var app = builder.Build();
+
+        // Map Aspire default endpoints (health checks)
+        app.MapDefaultEndpoints();
+
+        // Initialize Cosmos DB
+        using (var scope = app.Services.CreateScope())
+        {
+            var cosmosDbContext = scope.ServiceProvider.GetRequiredService<CosmosDbContext>();
+            await cosmosDbContext.InitializeDatabaseAsync();
+        }
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseCors("AllowBlazorHybrid");
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        await app.RunAsync();
+    }
 }
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
-app.UseCors("AllowBlazorHybrid");
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
