@@ -593,6 +593,12 @@ If you encounter issues not covered here:
 
 ## 📚 Additional Documentation
 
+### Aspire Orchestration
+- [ASPIRE_CONFIG_SUMMARY.md](ASPIRE_CONFIG_SUMMARY.md) - Quick overview of Aspire configuration
+- [docs/ASPIRE_QUICKSTART.md](docs/ASPIRE_QUICKSTART.md) - 2-minute quick start guide
+- [docs/ASPIRE_COORDINATION.md](docs/ASPIRE_COORDINATION.md) - Comprehensive coordination guide
+
+### General Documentation
 - [ASPIRE_SETUP.md](ASPIRE_SETUP.md) - Complete .NET Aspire setup guide
 - [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md) - Azure deployment with Aspire
 - [src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md](src/Vera.BlazorHybrid/ASPIRE_INTEGRATION.md) - Mobile app integration guide

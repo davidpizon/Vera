@@ -11,7 +11,8 @@ This document summarizes the .NET Aspire orchestration implementation for the Ve
 - **Location**: `src/Vera.AppHost/`
 - **Key Features**:
   - Service discovery and configuration
-  - Cosmos DB emulator integration
+  - **Cosmos DB container orchestration** (modernized to `RunAsContainer()`)
+  - **Azure Storage container orchestration** (modernized to `RunAsContainer()`)
   - Azure OpenAI connection string support
   - Automatic health monitoring
   - Aspire Dashboard hosting
@@ -37,8 +38,8 @@ This document summarizes the .NET Aspire orchestration implementation for the Ve
   - Added resilient HTTP client defaults
 
 - **New Dependencies**:
-  - `Microsoft.Extensions.ServiceDiscovery` (9.2.0)
-  - `Aspire.Azure.Data.Tables` (9.2.0)
+  - `Microsoft.Extensions.ServiceDiscovery` (10.1.0)
+  - `Aspire.Azure.Data.Tables` (10.1.0)
   - Project reference to `Vera.ServiceDefaults`
 
 #### Vera.BlazorHybrid
@@ -50,7 +51,7 @@ This document summarizes the .NET Aspire orchestration implementation for the Ve
 ### 3. Configuration Files Created
 
 #### AppHost Configuration
-- `src/Vera.AppHost/Program.cs` - Orchestration logic
+- `src/Vera.AppHost/Program.cs` - Orchestration logic (modernized to Aspire 10.x patterns)
 - `src/Vera.AppHost/appsettings.json` - AppHost settings
 - `src/Vera.AppHost/appsettings.Development.json` - Development overrides
 - `src/Vera.AppHost/Properties/launchSettings.json` - Launch profiles
@@ -101,8 +102,8 @@ This document summarizes the .NET Aspire orchestration implementation for the Ve
 ### Before Aspire
 ```
 Developer manually runs:
-??? Vera.API (dotnet run)
-??? Cosmos DB Emulator (docker run)
+? Vera.API (dotnet run)
+? Cosmos DB Emulator (docker run)
 
 Challenges:
 - Manual service startup
@@ -114,10 +115,11 @@ Challenges:
 ### After Aspire
 ```
 Developer runs Vera.AppHost:
-??? Aspire Dashboard (automatic)
-??? Vera.API (orchestrated)
-??? Cosmos DB Emulator (orchestrated)
-??? OpenTelemetry Collector (automatic)
+? Aspire Dashboard (automatic)
+? Vera.API (orchestrated)
+? Cosmos DB Container (orchestrated via RunAsContainer)
+? Azurite Storage Container (orchestrated via RunAsContainer)
+? OpenTelemetry Collector (automatic)
 
 Benefits:
 + Automatic service orchestration
@@ -179,26 +181,28 @@ Azure Container Apps configuration:
 
 ### Connection Strings
 Aspire-managed resources:
-- `cosmosdb` - Cosmos DB connection
+- `cosmosdb` - Cosmos DB connection (container locally, Azure Cosmos DB in cloud)
+- `storage` - Azure Storage connection (Azurite locally, Azure Storage in cloud)
 - `azureopenai` - Azure OpenAI connection
 
 ## ?? Package Versions
 
-### Aspire Packages (9.2.0)
-- `Aspire.Hosting.AppHost`
-- `Aspire.Hosting.Azure.CosmosDB`
+### Aspire Packages (10.1.0) - Updated!
+- `Aspire.Hosting.AppHost` (10.1.0)
+- `Aspire.Hosting.Azure.CosmosDB` (10.1.0)
+- `Aspire.Hosting.Azure.Storage` (10.1.0)
 
-### Service Discovery (9.2.0)
-- `Microsoft.Extensions.ServiceDiscovery`
+### Service Discovery (10.1.0) - Updated!
+- `Microsoft.Extensions.ServiceDiscovery` (10.1.0)
 
-### OpenTelemetry (1.11.0)
+### OpenTelemetry (1.14.0)
 - `OpenTelemetry.Exporter.OpenTelemetryProtocol`
 - `OpenTelemetry.Extensions.Hosting`
 - `OpenTelemetry.Instrumentation.AspNetCore`
 - `OpenTelemetry.Instrumentation.Http`
 - `OpenTelemetry.Instrumentation.Runtime`
 
-### Resilience (9.0.0)
+### Resilience (10.1.0)
 - `Microsoft.Extensions.Http.Resilience`
 
 ## ?? Getting Started
@@ -217,6 +221,10 @@ Aspire-managed resources:
 ## ?? Migration Notes
 
 ### What Changed for Existing Code
+- **Vera.AppHost/Program.cs**: **Modernized to Aspire 10.x patterns**
+  - Replaced `RunAsEmulator()` with `RunAsContainer()`
+  - Removed deprecated `WithLifetime()` API
+  - Added data volume configuration for persistence
 - **Vera.API/Program.cs**: Added `builder.AddServiceDefaults()` and `app.MapDefaultEndpoints()`
 - **Vera.API.csproj**: Added ServiceDefaults project reference
 - **Configuration**: No changes to existing appsettings.json values
@@ -227,11 +235,19 @@ Aspire-managed resources:
 - All repository patterns unchanged
 - Existing Docker Compose still works
 - Existing authentication still works
+- **Developer workflow unchanged** - `dotnet run` works the same
+
+### Recent Modernization (2024)
+- ? **Aspire 10.x Patterns**: Updated from deprecated `RunAsEmulator()` to modern `RunAsContainer()`
+- ? **Data Persistence**: Named Docker volumes ensure data survives restarts
+- ? **Future-Proof**: Aligned with current .NET Aspire best practices
+- ? **Zero Breaking Changes**: Existing functionality preserved
 
 ### Breaking Changes
 - **None**: Aspire is additive, not destructive
 - Old deployment methods still work
 - Can run API directly without Aspire if needed
+- **Modernization is backward compatible**
 
 ## ?? Next Steps
 
@@ -241,6 +257,7 @@ Aspire-managed resources:
 - ? API integrated with Aspire
 - ? Documentation created
 - ? Build verification successful
+- ? **Aspire 10.x modernization completed**
 
 ### Short Term (Recommended)
 - Configure Azure AD authentication
@@ -268,17 +285,19 @@ For questions or issues:
 1. Check [ASPIRE_SETUP.md](ASPIRE_SETUP.md) for detailed setup
 2. Check [QUICKSTART.md](QUICKSTART.md) for common issues
 3. Review [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md) for deployment help
-4. Open GitHub issue for bugs or feature requests
+4. Review [.github/upgrades/aspire-modernization-completed.md](.github/upgrades/aspire-modernization-completed.md) for modernization details
+5. Open GitHub issue for bugs or feature requests
 
 ## ?? Resources
 
 - [.NET Aspire Documentation](https://learn.microsoft.com/dotnet/aspire/)
+- [.NET Aspire 10.x What's New](https://learn.microsoft.com/dotnet/aspire/whats-new/aspire-10)
 - [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
 - [OpenTelemetry .NET](https://opentelemetry.io/docs/languages/net/)
 - [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/)
 
 ---
 
-**Implementation completed successfully!** ?
+**Implementation completed successfully!** ??
 
-The Vera application now has enterprise-grade orchestration, observability, and deployment capabilities through .NET Aspire.
+The Vera application now has enterprise-grade orchestration, observability, and deployment capabilities through **.NET Aspire 10.x** with modernized workflow patterns.

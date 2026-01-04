@@ -11,9 +11,39 @@ public class AzureOpenAIConversationService : IAIConversationService
 
     public AzureOpenAIConversationService(IConfiguration configuration)
     {
-        _endpoint = configuration["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint not configured");
-        _apiKey = configuration["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
-        _deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
+        // Support both Aspire connection string and traditional configuration
+        var connectionString = configuration.GetConnectionString("azureopenai");
+        
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            // Parse Aspire connection string format (e.g., "Endpoint=https://...;Key=...")
+            string? endpoint = null;
+            string? apiKey = null;
+            
+            var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                var keyValue = part.Split('=', 2);
+                if (keyValue.Length == 2)
+                {
+                    if (keyValue[0].Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
+                        endpoint = keyValue[1];
+                    else if (keyValue[0].Equals("Key", StringComparison.OrdinalIgnoreCase))
+                        apiKey = keyValue[1];
+                }
+            }
+            
+            _endpoint = endpoint ?? throw new InvalidOperationException("AzureOpenAI Endpoint not found in connection string");
+            _apiKey = apiKey ?? throw new InvalidOperationException("AzureOpenAI Key not found in connection string");
+            _deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
+        }
+        else
+        {
+            // Traditional configuration
+            _endpoint = configuration["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint not configured");
+            _apiKey = configuration["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
+            _deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
+        }
     }
 
     public async Task<string> GetResponseAsync(

@@ -6,25 +6,30 @@ public class Program
     {
         var builder = DistributedApplication.CreateBuilder(args);
 
-        // Add Azure Cosmos DB emulator or connection
+        // Aspire 13.x pattern: Azure Cosmos DB Emulator
         var cosmosDb = builder.AddAzureCosmosDB("cosmosdb")
-            .RunAsEmulator(emulator => emulator
-                .WithLifetime(ContainerLifetime.Persistent));
+            .RunAsEmulator(emulator =>
+            {
+                emulator.WithDataVolume("vera-cosmosdb-data");
+            });
 
-        var database = cosmosDb.AddDatabase("VeraDb");
+        var database = cosmosDb.AddCosmosDatabase("VeraDb");
 
-        // Add Azure OpenAI (using configuration from user secrets or appsettings)
+        // Aspire 13.x pattern: Azure Storage Emulator (Azurite)
+        var storage = builder.AddAzureStorage("storage")
+            .RunAsEmulator();
+        
+        var tables = storage.AddTables("tables");
+
+        // Connection string for Azure OpenAI
         var openai = builder.AddConnectionString("azureopenai");
 
-        // Add the API with service discovery
-        var api = builder.AddProject<Projects.Vera_API>("vera-api")
+        // Add the API project with service discovery
+        var api = builder.AddProject("vera-api", "../Vera.API/Vera.API.csproj")
             .WithReference(database)
+            .WithReference(tables)
             .WithEnvironment("AzureOpenAI__ConnectionString", openai)
             .WithExternalHttpEndpoints();
-
-        // For mobile/hybrid development, the BlazorHybrid app will connect to the API
-        // The API endpoint will be available for the mobile app to reference
-        api.WithEnvironment("ASPNETCORE_URLS", "http://localhost:5000;https://localhost:5001");
 
         builder.Build().Run();
     }

@@ -11,11 +11,24 @@ public class CosmosDbContext
 
     public CosmosDbContext(IConfiguration configuration)
     {
-        var endpoint = configuration["CosmosDb:Endpoint"] ?? throw new InvalidOperationException("CosmosDb:Endpoint not configured");
-        var key = configuration["CosmosDb:Key"] ?? throw new InvalidOperationException("CosmosDb:Key not configured");
-        _databaseName = configuration["CosmosDb:DatabaseName"] ?? "VeraDb";
-
-        _client = new CosmosClient(endpoint, key);
+        // Support both Aspire connection string and traditional configuration
+        var connectionString = configuration.GetConnectionString("cosmosdb");
+        
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            // Aspire-injected connection string
+            _client = new CosmosClient(connectionString);
+            _databaseName = configuration["CosmosDb:DatabaseName"] ?? "VeraDb";
+        }
+        else
+        {
+            // Traditional configuration
+            var endpoint = configuration["CosmosDb:Endpoint"] ?? throw new InvalidOperationException("CosmosDb:Endpoint not configured");
+            var key = configuration["CosmosDb:Key"] ?? throw new InvalidOperationException("CosmosDb:Key not configured");
+            _databaseName = configuration["CosmosDb:DatabaseName"] ?? "VeraDb";
+            _client = new CosmosClient(endpoint, key);
+        }
+        
         _database = _client.GetDatabase(_databaseName);
     }
 
